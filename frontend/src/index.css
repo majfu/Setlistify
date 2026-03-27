@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+body {
+  @apply bg-sky-50;
+  @apply font-mono;
+  @apply text-4xl;
+  @apply p-20;
+}
