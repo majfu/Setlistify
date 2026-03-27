@@ -1,0 +1,1 @@
+SetListify is a web application designed for easy Spotify playlist creation. Instead of manually hunting for setlists and top tracks, SetListify uses Gemini AI to predict concert sets and lets you build a custom playlist in minutes.
