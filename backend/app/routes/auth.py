@@ -54,7 +54,7 @@ async def callback(request: Request, code: str):
     return RedirectResponse(FRONTEND_LOGGED_IN_REDIRECT_URL)
 
 
-@router.get("/refresh_token")
+@router.post("/refresh_token")
 async def refresh_token(request: Request):
     session = request.session
     refresh_token = session.get("refresh_token")
