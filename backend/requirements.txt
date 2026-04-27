@@ -6,3 +6,5 @@ httpx
 dotenv
 starlette
 itsdangerous
+pydantic
+google-generativeai
