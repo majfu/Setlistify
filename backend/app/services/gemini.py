@@ -3,7 +3,7 @@ from typing import Dict, List
 
 import google.generativeai as genai
 
-GEMINI_MODEL = "gemini-2.0-flash"
+GEMINI_MODEL = "gemini-3-flash-preview"
 
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 _model = genai.GenerativeModel(GEMINI_MODEL)
