@@ -1,11 +1,28 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import InputField from "../components/InputField";
 import ArtistsList from "../components/ArtistsList";
 import AppButton from "../components/AppButton";
+import { getTrackRecommendations } from "../AppService";
+import LoadingOverlay from "../components/LoadingOverlay";
+import { useNavigate } from "react-router-dom";
+
+const ARTISTS_STORAGE_KEY = "setlistify:artistsList";
+const RECOMMENDATIONS_STORAGE_KEY = "setlistify:recommendations";
+const ADD_SONGS_PAGE_PATH = "/add-songs";
 
 function AddArtists() {
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [artistInput, setArtistInput] = useState<string>("");
-  const [artistsList, setArtistsList] = useState<string[]>([]);
+
+  const [artistsList, setArtistsList] = useState<string[]>(() => {
+    const stored = sessionStorage.getItem(ARTISTS_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  });
+
+  useEffect(() => {
+    sessionStorage.setItem(ARTISTS_STORAGE_KEY, JSON.stringify(artistsList));
+  }, [artistsList]);
 
   const addArtistToList = () => {
     if (!artistInput.length) return;
@@ -17,8 +34,28 @@ function AddArtists() {
     setArtistsList(artistsList.filter((a) => a !== artist));
   };
 
+  const getRecommendations = async () => {
+    if (!artistsList.length) {
+      alert("Add at least one artist to get recommendations");
+      return;
+    }
+
+    setIsLoading(true);
+
+    const recommendationsData = await getTrackRecommendations(artistsList);
+    sessionStorage.setItem(
+      RECOMMENDATIONS_STORAGE_KEY,
+      JSON.stringify(recommendationsData),
+    );
+
+    setIsLoading(false);
+    navigate(ADD_SONGS_PAGE_PATH);
+  };
+
   return (
     <div className="flex flex-col">
+      {isLoading && <LoadingOverlay infoText="Fetching recommendations..." />}
+
       <div className="self-center text-5xl mb-40 bg-sky-100 p-10 rounded-3xl">
         Let me help you create a playlist!
       </div>
@@ -45,6 +82,14 @@ function AddArtists() {
         artistsList={artistsList}
         onDelete={removeArtistFromList}
       />
+      <div className="self-end mt-20">
+        <AppButton
+          text="Get the recommendations!"
+          width={500}
+          height={80}
+          onClick={getRecommendations}
+        />
+      </div>
     </div>
   );
 }
