@@ -10,7 +10,7 @@ SPOTIFY_API_BASE_URL = "https://api.spotify.com/v1/"
 SEARCH_TRACKS_LIMIT_PER_ARTIST = 15
 
 
-def build_gemini_recommendations(
+def build_ai_recommendations(
         artist_tracks: Dict[str, List[str]],
         headers: dict,
 ) -> Tuple[List[ArtistRecommendation], Set[str]]:
@@ -28,7 +28,7 @@ def build_gemini_recommendations(
             seen_uris.add(track["uri"])
 
         artist_name = _most_common_artist(track_items)
-        track_data = _build_track_data_dict(track_items, is_gemini_recommended=True)
+        track_data = _build_track_data_dict(track_items, is_ai_recommended=True)
 
         recommendations.append(ArtistRecommendation(artistName=artist_name, tracks=track_data))
 
@@ -50,7 +50,7 @@ def build_search_recommendations(
             continue
 
         artist_name = _most_common_artist(unique_track_items)
-        track_data = _build_track_data_dict(unique_track_items, is_gemini_recommended=False)
+        track_data = _build_track_data_dict(unique_track_items, is_ai_recommended=False)
 
         recommendations.append(ArtistRecommendation(artistName=artist_name, tracks=track_data))
 
@@ -80,12 +80,12 @@ def _most_common_artist(track_items: List[dict]) -> str:
 
 def _build_track_data_dict(
         track_items: List[dict],
-        is_gemini_recommended: bool,
+        is_ai_recommended: bool,
 ) -> Dict[str, TrackData]:
     return {
         track["name"]: TrackData(
             uri=track["uri"],
-            isGeminiRecommended=is_gemini_recommended,
+            isAIRecommended=is_ai_recommended,
             popularity=track.get("popularity"),
         )
         for track in track_items

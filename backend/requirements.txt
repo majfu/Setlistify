@@ -8,3 +8,4 @@ starlette
 itsdangerous
 pydantic
 google-generativeai
+anthropic

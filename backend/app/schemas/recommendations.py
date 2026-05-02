@@ -8,7 +8,7 @@ class ArtistsList(BaseModel):
 
 class TrackData(BaseModel):
     uri: str
-    isGeminiRecommended: bool
+    isAIRecommended: bool
     popularity: Optional[int] = None
     isSelected: bool = False
 

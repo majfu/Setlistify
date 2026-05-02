@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, status
 
 from app.schemas.recommendations import ArtistsList, RecommendationsResponse
-from app.services import gemini, spotify
+from app.services import ai, spotify
 
 router = APIRouter(prefix="/recommendations", tags=["recommendations"])
 
@@ -12,8 +12,8 @@ def get_recommendations(artists_list: ArtistsList, request: Request):
     headers = {"Authorization": f"Bearer {access_token}"}
     artists = artists_list.artistsList
 
-    artist_tracks = gemini.get_artist_tracks_dict(artists)
-    gemini_recs, seen_uris = spotify.build_gemini_recommendations(artist_tracks, headers)
+    artist_tracks = ai.get_artist_tracks_dict(artists)
+    ai_recs, seen_uris = spotify.build_ai_recommendations(artist_tracks, headers)
     search_recs = spotify.build_search_recommendations(artists, headers, seen_uris)
 
-    return RecommendationsResponse(recommendations=gemini_recs + search_recs)
+    return RecommendationsResponse(recommendations=ai_recs + search_recs)

@@ -4,7 +4,7 @@ export interface ArtistsList {
 
 export interface TrackData {
   uri: string;
-  isGeminiRecommended: boolean;
+  isAIRecommended: boolean;
   popularity: number | null;
   isSelected: boolean;
 }
