@@ -16,4 +16,11 @@ def get_recommendations(artists_list: ArtistsList, request: Request):
     ai_recs, seen_uris = spotify.build_ai_recommendations(artist_tracks, headers)
     search_recs = spotify.build_search_recommendations(artists, headers, seen_uris)
 
-    return RecommendationsResponse(recommendations=ai_recs + search_recs)
+    merged = {rec.artistName: rec for rec in ai_recs}
+    for rec in search_recs:
+        if rec.artistName in merged:
+            merged[rec.artistName].tracks.update(rec.tracks)
+        else:
+            merged[rec.artistName] = rec
+
+    return RecommendationsResponse(recommendations=list(merged.values()))
