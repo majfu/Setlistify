@@ -4,10 +4,15 @@ import type {
   RecommendationsResponse,
 } from "../models/recommendations";
 import SongsField from "../components/SongsField";
+import AppButton from "../components/AppButton";
+import { useNavigate } from "react-router-dom";
 
 const RECOMMENDATIONS_STORAGE_KEY = "setlistify:recommendations";
+const SET_TITLE_PATH_PATH = "/set-title";
 
 function AddSongs() {
+  const navigate = useNavigate();
+
   const [recommendations, setRecommendations] = useState<
     ArtistRecommendation[]
   >(() => {
@@ -74,7 +79,7 @@ function AddSongs() {
       <div className="text-5xl mb-40 bg-sky-100 p-10 rounded-3xl">
         Add some songs!
       </div>
-      <div>
+      <div className="flex flex-col gap-20">
         <SongsField
           artistRecommendation={recommendations[currentIndex]}
           currentIndex={currentIndex}
@@ -84,6 +89,14 @@ function AddSongs() {
           onToggleTrack={handleToggleTrack}
           onSelectAll={handleSelectAll}
         />
+        <div className="self-end">
+          <AppButton
+            text="Confirm song selection"
+            width={600}
+            height={80}
+            onClick={() => navigate(SET_TITLE_PATH_PATH)}
+          />
+        </div>
       </div>
     </div>
   );
