@@ -1,13 +1,17 @@
 import os
+from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List
 
 CHOSEN_MODEL = os.getenv("CHOSEN_MODEL", "CLAUDE").upper()
-CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-6")
+CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-opus-4-5")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
 
+THINKING_BUDGET_TOKENS = 2000
+MAX_TOKENS = 4096
+MAX_CONCURRENT_CALLS = 5
+
 FORMAT_INSTRUCTION = (
-    "You return data only in this exact format, no extra text: "
-    "artist name:song,song,song;artist name:song,song,song"
+    "You return data only in this exact format, no extra text: song,song,song"
 )
 
 if CHOSEN_MODEL == "CLAUDE":
@@ -22,7 +26,13 @@ else:
 
 
 def get_artist_tracks_dict(artists: List[str]) -> Dict[str, List[str]]:
-    text = _generate(_build_recommendations_prompt(artists))
+    with ThreadPoolExecutor(max_workers=MAX_CONCURRENT_CALLS) as executor:
+        tracks_per_artist = list(executor.map(_get_tracks_for_artist, artists))
+    return dict(zip(artists, tracks_per_artist))
+
+
+def _get_tracks_for_artist(artist: str) -> List[str]:
+    text = _generate(_build_recommendations_prompt(artist))
     return _parse_response(text)
 
 
@@ -30,7 +40,8 @@ def _generate(prompt: str) -> str:
     if CHOSEN_MODEL == "CLAUDE":
         response = _claude_client.messages.create(
             model=CLAUDE_MODEL,
-            max_tokens=4096,
+            max_tokens=MAX_TOKENS,
+            thinking={"type": "enabled", "budget_tokens": THINKING_BUDGET_TOKENS},
             system=FORMAT_INSTRUCTION,
             messages=[{"role": "user", "content": prompt}],
         )
@@ -41,21 +52,12 @@ def _generate(prompt: str) -> str:
     ).text
 
 
-def _parse_response(response_text: str) -> Dict[str, List[str]]:
-    artist_tracks_dict = {}
-
-    for entry in response_text.split(";"):
-        if ":" not in entry:
-            continue
-
-        artist_name, tracks_str = entry.split(":", 1)
-        artist_tracks_dict[artist_name] = [track for track in tracks_str.split(",")]
-
-    return artist_tracks_dict
+def _parse_response(response_text: str) -> List[str]:
+    return [track.strip() for track in response_text.split(",") if track.strip()]
 
 
-def _build_recommendations_prompt(artists: List[str]) -> str:
-    return f"""Jadę na festiwal muzyczny, ci artyści będą na nim grać: {artists}
+def _build_recommendations_prompt(artist: str) -> str:
+    return f"""Jadę na festiwal muzyczny, {artist} będzie na nim grać.
 
-Dla każdego artysty podaj 10 piosenek, które najczęściej pojawiają się w ich setlistach koncertowych lub są ich największymi hitami (czyli takie, które bardzo prawdopodobnie zostaną zagrane).
+Podaj 10 piosenek tego artysty, które najczęściej pojawiają się w jego setlistach koncertowych lub są jego największymi hitami (czyli takie, które bardzo prawdopodobnie zostaną zagrane).
 """
