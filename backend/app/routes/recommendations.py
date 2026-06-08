@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, status
 
 from app.schemas.recommendations import ArtistsList, RecommendationsResponse
-from app.services import ai, spotify
+from app.services import ai, setlist, spotify
 
 router = APIRouter(prefix="/recommendations", tags=["recommendations"])
 
@@ -12,7 +12,8 @@ def get_recommendations(artists_list: ArtistsList, request: Request):
     headers = {"Authorization": f"Bearer {access_token}"}
     artists = artists_list.artistsList
 
-    artist_tracks = ai.get_artist_tracks_dict(artists)
+    setlists_per_artist = setlist.get_recent_song_names_per_artist(artists)
+    artist_tracks = ai.get_artist_tracks_dict(setlists_per_artist)
     ai_recs, seen_uris = spotify.build_ai_recommendations(artist_tracks, headers)
     search_recs = spotify.build_search_recommendations(artists, headers, seen_uris)
 

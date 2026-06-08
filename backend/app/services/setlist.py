@@ -1,5 +1,6 @@
 import os
-from typing import Iterator, List
+import time
+from typing import Dict, Iterator, List
 
 import requests
 
@@ -8,11 +9,23 @@ SEARCH_SETLIST_URL = "/1.0/search/setlists"
 SETLIST_API_KEY = os.getenv("SETLIST_API_KEY")
 
 SETLISTS_TO_FETCH = 2
+SECONDS_BETWEEN_CALLS = 0.5  # API limit 2 calls per second
 
 
-def get_recent_song_names(artist_name: str) -> set[str]:
-    setlists = _fetch_setlists(artist_name)[:SETLISTS_TO_FETCH]
-    return set(_iter_song_names(setlists))
+def get_recent_song_names_per_artist(artists: List[str]) -> Dict[str, set[str]]:
+    songs_per_artist = {}
+    for artist in artists:
+        time.sleep(SECONDS_BETWEEN_CALLS)
+        songs_per_artist[artist] = _get_recent_song_names(artist)
+    return songs_per_artist
+
+
+def _get_recent_song_names(artist_name: str) -> set[str]:
+    try:
+        setlists = _fetch_setlists(artist_name)[:SETLISTS_TO_FETCH]
+        return set(_iter_song_names(setlists))
+    except Exception:
+        return set()
 
 
 def _fetch_setlists(artist_name: str) -> List[dict]:
@@ -27,7 +40,7 @@ def _fetch_setlists(artist_name: str) -> List[dict]:
         params=params,
     )
 
-    return response.json()["setlist"]
+    return response.json().get("setlist", [])
 
 
 def _iter_song_names(setlists: List[dict]) -> Iterator[str]:
