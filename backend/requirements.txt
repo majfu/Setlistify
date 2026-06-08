@@ -9,3 +9,4 @@ itsdangerous
 pydantic
 google-generativeai
 anthropic
+requests
