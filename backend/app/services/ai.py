@@ -5,6 +5,10 @@ CHOSEN_MODEL = os.getenv("CHOSEN_MODEL", "CLAUDE").upper()
 CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-opus-4-8")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
 
+MAX_TOKENS_PER_ARTIST = 60
+MAX_TOKENS_BASE = 256
+MAX_TOKENS_CEILING = 8192
+
 FORMAT_INSTRUCTION = (
     "Your ENTIRE response must be ONLY the formatted data below — no preamble, no explanation, "
     "no trailing text, no markdown, no code fences. The first character of your response must be "
@@ -31,19 +35,20 @@ def get_artist_tracks_dict(artists: List[str]) -> Dict[str, List[str]]:
     return _parse_response(text)
 
 
-def _generate(prompt: str) -> str:
+def _generate(prompt: str, num_artists: int) -> str:
+    max_tokens = min(MAX_TOKENS_CEILING, MAX_TOKENS_BASE + MAX_TOKENS_PER_ARTIST * num_artists)
+
     if CHOSEN_MODEL == "CLAUDE":
         response = _claude_client.messages.create(
             model=CLAUDE_MODEL,
-            max_tokens=4096,
-            system=FORMAT_INSTRUCTION,
-            messages=[{"role": "user", "content": prompt}],
+            max_tokens=max_tokens,
+            messages=[
+                {"role": "user", "content": f"{prompt}\n\n{FORMAT_INSTRUCTION}"},
+            ],
         )
         return next((b.text for b in response.content if b.type == "text"), "")
 
-    return _gemini_model.generate_content(
-        f"{prompt}\n\n{FORMAT_INSTRUCTION}"
-    ).text
+    return _gemini_model.generate_content(f"{prompt}\n\n{FORMAT_INSTRUCTION}").text
 
 
 def _parse_response(response_text: str) -> Dict[str, List[str]]:
