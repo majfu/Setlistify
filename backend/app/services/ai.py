@@ -6,8 +6,13 @@ CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-opus-4-8")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
 
 FORMAT_INSTRUCTION = (
-    "You return data only in this exact format, no extra text: "
-    "artist name:song,song,song;artist name:song,song,song"
+    "Your ENTIRE response must be ONLY the formatted data below — no preamble, no explanation, "
+    "no trailing text, no markdown, no code fences. The first character of your response must be "
+    "the first artist's name.\n\n"
+    "Format: artist name:song,song,song;artist name:song,song,song\n\n"
+    "Use exact song titles only — no featured-artist annotations, no album names, "
+    "no parentheticals, no commas inside titles. If unsure of a title, OMIT it "
+    "rather than invent one."
 )
 
 if CHOSEN_MODEL == "CLAUDE":
