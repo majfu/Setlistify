@@ -21,9 +21,11 @@ FORMAT_INSTRUCTION = (
 
 if CHOSEN_MODEL == "CLAUDE":
     from anthropic import Anthropic
+
     _claude_client = Anthropic()
 elif CHOSEN_MODEL == "GEMINI":
     import google.generativeai as genai
+
     genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
     _gemini_model = genai.GenerativeModel(GEMINI_MODEL)
 else:
