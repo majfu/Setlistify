@@ -32,9 +32,11 @@ else:
     raise ValueError(f"Unsupported CHOSEN_MODEL: {CHOSEN_MODEL}")
 
 
-def get_artist_tracks_dict(artists: List[str]) -> Dict[str, List[str]]:
-    text = _generate(_build_recommendations_prompt(artists))
-    return _parse_response(text)
+def get_artist_tracks_dict(setlists_per_artist: Dict[str, set[str]]) -> Dict[str, List[str]]:
+    artists = list(setlists_per_artist.keys())
+    prompt = _build_recommendations_prompt(setlists_per_artist)
+    text = _generate(prompt, num_artists=len(artists))
+    return _parse_response(text, expected_artists=artists)
 
 
 def _generate(prompt: str, num_artists: int) -> str:
@@ -53,21 +55,55 @@ def _generate(prompt: str, num_artists: int) -> str:
     return _gemini_model.generate_content(f"{prompt}\n\n{FORMAT_INSTRUCTION}").text
 
 
-def _parse_response(response_text: str) -> Dict[str, List[str]]:
-    artist_tracks_dict = {}
+def _parse_response(response_text: str, expected_artists: List[str]) -> Dict[str, List[str]]:
+    response_text = _trim_to_first_artist(response_text, expected_artists)
 
+    artist_tracks_dict = {}
     for entry in response_text.split(";"):
         if ":" not in entry:
             continue
 
         artist_name, tracks_str = entry.split(":", 1)
-        artist_tracks_dict[artist_name] = [track for track in tracks_str.split(",")]
+        artist_tracks_dict[artist_name.strip()] = [
+            track.strip() for track in tracks_str.split(",") if track.strip()
+        ]
 
     return artist_tracks_dict
 
 
-def _build_recommendations_prompt(artists: List[str]) -> str:
-    return f"""Jadę na festiwal muzyczny, ci artyści będą na nim grać: {artists}
+def _trim_to_first_artist(response_text: str, expected_artists: List[str]) -> str:
+    artist_positions = (response_text.lower().find(artist.lower()) for artist in expected_artists)
+    found_positions = (position for position in artist_positions if position >= 0)
 
-Dla każdego artysty podaj 10 piosenek, które najczęściej pojawiają się w ich setlistach koncertowych lub są ich największymi hitami (czyli takie, które bardzo prawdopodobnie zostaną zagrane).
-"""
+    if not found_positions:
+        return response_text
+
+    first_artist_position = min(found_positions)
+    return response_text[first_artist_position:]
+
+
+def _build_recommendations_prompt(setlists_per_artist: Dict[str, set[str]]) -> str:
+    context_block = "\n".join(
+        _format_artist_line(artist, songs) for artist, songs in setlists_per_artist.items()
+    )
+
+    return (
+        "Jadę na festiwal muzyczny. Dla każdego z poniższych artystów podaj 15 piosenek, "
+        "które najprawdopodobniej zagrają na żywo — kluczem jest częstotliwość pojawiania się "
+        "w niedawnych setlistach koncertowych, a w drugiej kolejności bycie ich największymi hitami.\n\n"
+        "Poniżej masz piosenki, które każdy z artystów zagrał niedawno na żywo. "
+        "Traktuj je jako potwierdzone, prawdziwe tytuły z prawdziwych setlistów — "
+        "użyj ich jako punktu odniesienia, żeby nie wymyślać nieistniejących piosenek. "
+        "MOŻESZ je podać w odpowiedzi, jeśli pasują, ale uzupełnij listę o inne piosenki, "
+        "co do których masz pewność, że artysta gra je na żywo:\n"
+        f"{context_block}\n\n"
+        "Wymagania:\n"
+        "- Dokładnie 15 piosenek na każdego artystę.\n"
+        "- Jeśli dla artysty nie ma żadnych piosenek powyżej, podaj 15 jego największych hitów.\n"
+        "- Jeśli nie jesteś pewien tytułu, POMIŃ go zamiast zgadywać — lepiej mniej piosenek niż wymyślone.\n"
+    )
+
+
+def _format_artist_line(artist: str, songs: set[str]) -> str:
+    songs_str = ", ".join(songs) if songs else "(brak danych)"
+    return f"- {artist}: {songs_str}"
