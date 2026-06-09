@@ -2,7 +2,7 @@ import os
 from typing import Dict, List
 
 CHOSEN_MODEL = os.getenv("CHOSEN_MODEL", "CLAUDE").upper()
-CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-6")
+CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-opus-4-8")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
 
 FORMAT_INSTRUCTION = (
