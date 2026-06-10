@@ -20,10 +20,10 @@ function SongsField({
   onToggleTrack,
   onSelectAll,
 }: SongsFieldProps) {
-  const tracks = Object.entries(artistRecommendation.tracks);
-  const aiRecommendedTracks = tracks.filter(
-    ([, track]) => track.isAIRecommended,
+  const tracks = Object.entries(artistRecommendation.tracks).sort(
+    ([, a], [, b]) => (b.popularity ?? -1) - (a.popularity ?? -1),
   );
+  const aiRecommendedTracks = tracks.filter(([, track]) => track.isAIRecommended);
   const otherTracks = tracks.filter(([, track]) => !track.isAIRecommended);
 
   const renderTrack = ([trackName, trackData]: (typeof tracks)[number]) => (
