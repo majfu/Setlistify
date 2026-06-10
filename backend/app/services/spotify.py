@@ -62,7 +62,7 @@ def _search_tracks_by_artist(artist: str, headers: dict, limit: int) -> List[dic
     url = f"{SPOTIFY_API_BASE_URL}search?q={query}&type=track&limit={limit}"
     response = requests.get(url, headers=headers)
 
-    return response.json()["tracks"]["items"]
+    return _extract_track_items(response)
 
 
 def _search_track(track: str, artist: str, headers: dict) -> Optional[dict]:
@@ -70,8 +70,15 @@ def _search_track(track: str, artist: str, headers: dict) -> Optional[dict]:
     url = f"{SPOTIFY_API_BASE_URL}search?q={query}&type=track&limit=1"
     response = requests.get(url, headers=headers)
 
-    items = response.json()["tracks"]["items"]
+    items = _extract_track_items(response)
     return items[0] if items else None
+
+
+def _extract_track_items(response: requests.Response) -> List[dict]:
+    body = response.json()
+    if "tracks" not in body:
+        return []
+    return body["tracks"]["items"]
 
 
 def _most_common_artist(track_items: List[dict]) -> str:
