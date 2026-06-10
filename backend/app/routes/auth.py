@@ -92,7 +92,7 @@ async def _fetch_new_spotify_tokens(refresh_token: str) -> dict:
         return response.json()
 
 
-def _update_session_with_new_tokens(session: dict, token_info: dict):
+def _update_session_with_new_tokens(session: dict, token_info: dict) -> None:
     now = datetime.datetime.now().timestamp()
     session['access_token'] = token_info['access_token']
     session['expires_at'] = now + token_info['expires_in']
