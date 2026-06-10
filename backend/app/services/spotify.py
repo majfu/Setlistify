@@ -8,6 +8,20 @@ from app.schemas.recommendations import ArtistRecommendation, TrackData
 
 SPOTIFY_API_BASE_URL = "https://api.spotify.com/v1/"
 SEARCH_TRACKS_LIMIT_PER_ARTIST = 15
+MAX_TRACKS_PER_REQUEST = 100
+
+
+def create_empty_playlist(playlist_title: str, headers: dict) -> Optional[str]:
+    url = f"{SPOTIFY_API_BASE_URL}me/playlists"
+    response = requests.post(url, headers=headers, json={"name": playlist_title})
+    return response.json().get("id")
+
+
+def add_tracks_to_playlist(playlist_id: str, uris: List[str], headers: dict) -> None:
+    url = f"{SPOTIFY_API_BASE_URL}playlists/{playlist_id}/tracks"
+    for start in range(0, len(uris), MAX_TRACKS_PER_REQUEST):
+        batch = uris[start:start + MAX_TRACKS_PER_REQUEST]
+        requests.post(url, headers=headers, json={"uris": batch})
 
 
 def build_ai_recommendations(
