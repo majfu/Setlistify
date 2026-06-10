@@ -1,9 +1,31 @@
 import { useState } from "react";
 import InputField from "../components/InputField";
 import AppButton from "../components/AppButton";
+import { createPlaylist } from "../AppService";
+import type {
+  ArtistRecommendation,
+  RecommendationsResponse,
+} from "../models/recommendations";
+
+const RECOMMENDATIONS_STORAGE_KEY = "setlistify:recommendations";
+
+function getSelectedTracks() {
+  const stored = sessionStorage.getItem(RECOMMENDATIONS_STORAGE_KEY);
+  if (!stored) return [];
+
+  const parsed: RecommendationsResponse = JSON.parse(stored);
+  return (parsed.recommendations ?? []).flatMap(
+    (rec: ArtistRecommendation) =>
+      Object.values(rec.tracks).filter((track) => track.isSelected),
+  );
+}
 
 function SetTitle() {
   const [playlistTitle, setPlaylistTitle] = useState<string>("");
+
+  const handleCreatePlaylist = () => {
+    createPlaylist(playlistTitle, getSelectedTracks());
+  };
 
   return (
     <div className="flex flex-col items-center text-4xl mt-30 gap-10">
@@ -21,7 +43,12 @@ function SetTitle() {
         height={90}
       />
       <div className="mt-10">
-        <AppButton text="Create playlist!" width={600} height={70} />
+        <AppButton
+          text="Create playlist!"
+          width={600}
+          height={70}
+          onClick={handleCreatePlaylist}
+        />
       </div>
     </div>
   );
