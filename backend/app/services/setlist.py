@@ -34,7 +34,7 @@ def _fetch_setlists(artist_name: str) -> List[dict]:
         "x-api-key": SETLIST_API_KEY,
         "Accept": "application/json",
     }
-    params = {"artistName": artist_name, "sort": "relevance"}
+    params = {"artistName": artist_name}
     response = requests.get(
         f"{SETLIST_API_BASE_URL}{SEARCH_SETLIST_URL}",
         headers=headers,
