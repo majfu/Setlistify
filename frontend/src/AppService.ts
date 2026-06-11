@@ -1,6 +1,10 @@
 import axios from "axios";
 import type { RecommendationsResponse } from "./models/recommendations";
-import type { PlaylistCreate, SelectedTrack } from "./models/playlists";
+import type {
+  PlaylistCreate,
+  PlaylistsPage,
+  SelectedTrack,
+} from "./models/playlists";
 
 const BACKEND_URL = "http://127.0.0.1:8000";
 
@@ -21,6 +25,23 @@ export const createPlaylist = async (
 ): Promise<void> => {
   const body: PlaylistCreate = { playlistTitle, selectedTracks };
   await axios.post(`${BACKEND_URL}/playlists/`, body, {
+    withCredentials: true,
+  });
+};
+
+export const getPlaylists = async (
+  page: number,
+  pageSize: number,
+): Promise<PlaylistsPage> => {
+  const response = await axios.get<PlaylistsPage>(`${BACKEND_URL}/playlists/`, {
+    params: { page, page_size: pageSize },
+    withCredentials: true,
+  });
+  return response.data;
+};
+
+export const deletePlaylist = async (playlistId: number): Promise<void> => {
+  await axios.delete(`${BACKEND_URL}/playlists/${playlistId}`, {
     withCredentials: true,
   });
 };
