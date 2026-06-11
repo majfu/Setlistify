@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 
 from sqlalchemy.orm import Session
 
@@ -35,6 +35,27 @@ def save_playlist(
     db.commit()
     db.refresh(playlist)
     return playlist
+
+
+def get_playlists_page(
+    db: Session, page: int, page_size: int
+) -> Tuple[List[Playlist], int]:
+    query = db.query(Playlist).order_by(
+        Playlist.created_at.desc(), Playlist.id.desc()
+    )
+    total = query.count()
+    playlists = query.offset((page - 1) * page_size).limit(page_size).all()
+    return playlists, total
+
+
+def delete_playlist(db: Session, playlist_id: int) -> bool:
+    playlist = db.query(Playlist).filter(Playlist.id == playlist_id).first()
+    if playlist is None:
+        return False
+
+    db.delete(playlist)
+    db.commit()
+    return True
 
 
 def _get_or_create_artist(db: Session, name: str) -> Artist:
