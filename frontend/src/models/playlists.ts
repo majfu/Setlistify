@@ -11,3 +11,14 @@ export interface PlaylistCreate {
   playlistTitle: string;
   selectedTracks: SelectedTrack[];
 }
+
+export interface Playlist {
+  id: number;
+  title: string;
+  createdAt: string;
+}
+
+export interface PlaylistsPage {
+  playlists: Playlist[];
+  total: number;
+}

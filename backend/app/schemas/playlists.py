@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel
@@ -15,3 +16,14 @@ class SelectedTrack(BaseModel):
 class PlaylistCreate(BaseModel):
     playlistTitle: str
     selectedTracks: list[SelectedTrack]
+
+
+class PlaylistRead(BaseModel):
+    id: int
+    title: str
+    createdAt: datetime
+
+
+class PlaylistsPage(BaseModel):
+    playlists: list[PlaylistRead]
+    total: int
