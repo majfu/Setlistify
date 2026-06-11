@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from sqlalchemy.orm import Session
 
@@ -48,14 +48,13 @@ def get_playlists_page(
     return playlists, total
 
 
-def delete_playlist(db: Session, playlist_id: int) -> bool:
-    playlist = db.query(Playlist).filter(Playlist.id == playlist_id).first()
-    if playlist is None:
-        return False
+def get_playlist(db: Session, playlist_id: int) -> Optional[Playlist]:
+    return db.query(Playlist).filter(Playlist.id == playlist_id).first()
 
+
+def delete_playlist(db: Session, playlist: Playlist) -> None:
     db.delete(playlist)
     db.commit()
-    return True
 
 
 def _get_or_create_artist(db: Session, name: str) -> Artist:

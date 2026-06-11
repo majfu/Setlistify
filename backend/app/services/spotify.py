@@ -27,6 +27,11 @@ def add_tracks_to_playlist(playlist_id: str, uris: List[str], headers: dict) -> 
         requests.post(url, headers=headers, json={"uris": batch})
 
 
+def delete_playlist(playlist_id: str, headers: dict) -> None:
+    url = f"{SPOTIFY_API_BASE_URL}playlists/{playlist_id}/followers"
+    requests.delete(url, headers=headers)
+
+
 def build_ai_recommendations(
         artist_tracks: Dict[str, List[str]],
         headers: dict,

@@ -25,9 +25,16 @@ def list_playlists(
 
 
 @router.delete("/{playlist_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_playlist(playlist_id: int, db: Session = Depends(get_db)):
-    if not playlist_store.delete_playlist(db, playlist_id):
+def delete_playlist(playlist_id: int, request: Request, db: Session = Depends(get_db)):
+    playlist = playlist_store.get_playlist(db, playlist_id)
+    if playlist is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    access_token = request.session.get("access_token")
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    spotify.delete_playlist(playlist.spotify_id, headers)
+    playlist_store.delete_playlist(db, playlist)
 
 
 @router.post("/", status_code=status.HTTP_200_OK)
