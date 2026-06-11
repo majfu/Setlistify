@@ -6,9 +6,13 @@ load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
+from app.database import Base, engine
+from app import models
 from app.routes import auth, recommendations, playlists
 
 ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000", "http://127.0.0.1:3000"]
+
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
