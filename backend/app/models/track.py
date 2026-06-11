@@ -14,4 +14,4 @@ class Track(Base):
     artist_id = Column(Integer, ForeignKey("artists.id"), nullable=False)
     artist = relationship("Artist", back_populates="tracks")
 
-    playlist_links = relationship("PlaylistTrack", back_populates="tracks")
+    playlist_links = relationship("PlaylistTrack", back_populates="track")

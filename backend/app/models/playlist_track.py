@@ -5,7 +5,7 @@ from sqlalchemy.orm import relationship
 
 class PlaylistTrack(Base):
     __tablename__ = "playlist_tracks"
-    __table_args__ = UniqueConstraint("playlist_id", "track_id")
+    __table_args__ = (UniqueConstraint("playlist_id", "track_id"),)
 
     id = Column(Integer, primary_key=True)
     playlist_id = Column(Integer, ForeignKey("playlists.id"), nullable=False)
