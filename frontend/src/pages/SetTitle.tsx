@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import InputField from "../components/InputField";
 import AppButton from "../components/AppButton";
 import { createPlaylist } from "../AppService";
@@ -9,6 +10,7 @@ import type {
 import type { SelectedTrack } from "../models/playlists";
 
 const RECOMMENDATIONS_STORAGE_KEY = "setlistify:recommendations";
+const HOME_PAGE_PATH = "/home";
 
 function getSelectedTracks(): SelectedTrack[] {
   const stored = sessionStorage.getItem(RECOMMENDATIONS_STORAGE_KEY);
@@ -30,10 +32,18 @@ function getSelectedTracks(): SelectedTrack[] {
 }
 
 function SetTitle() {
+  const navigate = useNavigate();
   const [playlistTitle, setPlaylistTitle] = useState<string>("");
 
-  const handleCreatePlaylist = () => {
-    createPlaylist(playlistTitle, getSelectedTracks());
+  const handleCreatePlaylist = async () => {
+    try {
+      await createPlaylist(playlistTitle, getSelectedTracks());
+      alert("Playlist successfully created!");
+    } catch {
+      alert("Sorry, something went wrong during playlist creation");
+    } finally {
+      navigate(HOME_PAGE_PATH);
+    }
   };
 
   return (
