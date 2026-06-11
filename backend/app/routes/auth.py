@@ -7,8 +7,10 @@ import httpx
 
 SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize"
 TOKEN_URL = "https://accounts.spotify.com/api/token"
-FRONTEND_LOGGED_IN_REDIRECT_URL = "http://127.0.0.1:5173/home"
-FRONTEND_LOG_IN_REDIRECT_URL = "http://127.0.0.1:5173/"
+
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://127.0.0.1:5173")
+FRONTEND_LOGGED_IN_REDIRECT_URL = f"{FRONTEND_URL}/home"
+FRONTEND_LOG_IN_REDIRECT_URL = f"{FRONTEND_URL}/"
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

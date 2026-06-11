@@ -24,6 +24,7 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/setlistify_db
+      FRONTEND_URL: http://127.0.0.1:3000
     volumes:
       - ./backend:/app
     ports:
