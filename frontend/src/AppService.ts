@@ -1,9 +1,6 @@
 import axios from "axios";
-import type {
-  RecommendationsResponse,
-  TrackData,
-} from "./models/recommendations";
-import type { PlaylistCreate } from "./models/playlists";
+import type { RecommendationsResponse } from "./models/recommendations";
+import type { PlaylistCreate, SelectedTrack } from "./models/playlists";
 
 const BACKEND_URL = "http://127.0.0.1:8000";
 
@@ -20,7 +17,7 @@ export const getTrackRecommendations = async (
 
 export const createPlaylist = async (
   playlistTitle: string,
-  selectedTracks: TrackData[],
+  selectedTracks: SelectedTrack[],
 ): Promise<void> => {
   const body: PlaylistCreate = { playlistTitle, selectedTracks };
   await axios.post(`${BACKEND_URL}/playlists/`, body, {

@@ -6,17 +6,26 @@ import type {
   ArtistRecommendation,
   RecommendationsResponse,
 } from "../models/recommendations";
+import type { SelectedTrack } from "../models/playlists";
 
 const RECOMMENDATIONS_STORAGE_KEY = "setlistify:recommendations";
 
-function getSelectedTracks() {
+function getSelectedTracks(): SelectedTrack[] {
   const stored = sessionStorage.getItem(RECOMMENDATIONS_STORAGE_KEY);
   if (!stored) return [];
 
   const parsed: RecommendationsResponse = JSON.parse(stored);
-  return (parsed.recommendations ?? []).flatMap(
-    (rec: ArtistRecommendation) =>
-      Object.values(rec.tracks).filter((track) => track.isSelected),
+  return (parsed.recommendations ?? []).flatMap((rec: ArtistRecommendation) =>
+    Object.entries(rec.tracks)
+      .filter(([, track]) => track.isSelected)
+      .map(([title, track]) => ({
+        title,
+        artistName: rec.artistName,
+        uri: track.uri,
+        isAIRecommended: track.isAIRecommended,
+        popularity: track.popularity,
+        isSelected: track.isSelected,
+      })),
   );
 }
 

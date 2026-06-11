@@ -11,10 +11,13 @@ SEARCH_TRACKS_LIMIT_PER_ARTIST = 15
 MAX_TRACKS_PER_REQUEST = 100
 
 
-def create_empty_playlist(playlist_title: str, headers: dict) -> Optional[str]:
+def create_empty_playlist(playlist_title: str, headers: dict) -> Optional[Tuple[str, str]]:
     url = f"{SPOTIFY_API_BASE_URL}me/playlists"
     response = requests.post(url, headers=headers, json={"name": playlist_title})
-    return response.json().get("id")
+    body = response.json()
+    if "id" not in body:
+        return None
+    return body["id"], body["uri"]
 
 
 def add_tracks_to_playlist(playlist_id: str, uris: List[str], headers: dict) -> None:
