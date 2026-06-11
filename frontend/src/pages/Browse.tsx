@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AppButton from "../components/AppButton";
 import PlaylistList from "../components/PlaylistList";
 import { deletePlaylist, getPlaylists } from "../AppService";
 import type { Playlist } from "../models/playlists";
 
 const PAGE_SIZE = 5;
+const HOME_PAGE_PATH = "/home";
 
 function Browse() {
+  const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [total, setTotal] = useState(0);
@@ -51,6 +54,15 @@ function Browse() {
           </div>
           <AppButton text=">" width={80} height={80} onClick={handleNext} />
         </div>
+      </div>
+
+      <div className="mt-40">
+        <AppButton
+          text="Home"
+          width={300}
+          height={70}
+          onClick={() => navigate(HOME_PAGE_PATH)}
+        />
       </div>
     </div>
   );
