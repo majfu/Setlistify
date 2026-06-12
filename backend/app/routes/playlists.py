@@ -2,7 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.schemas.playlists import PlaylistCreate, PlaylistRead, PlaylistsPage
+from app.schemas.playlists import (
+    PlaylistAddTracks,
+    PlaylistCreate,
+    PlaylistRead,
+    PlaylistsPage,
+)
 from app.services import playlist_store, spotify
 
 router = APIRouter(prefix="/playlists", tags=["playlists"])
@@ -57,3 +62,28 @@ def create_playlist(
     spotify_id, spotify_uri = playlist_data
     spotify.add_tracks_to_playlist(spotify_id, uris, headers)
     playlist_store.save_playlist(db, playlist_title, spotify_id, spotify_uri, selected_tracks)
+
+
+@router.post("/{playlist_id}/tracks", status_code=status.HTTP_200_OK)
+def add_tracks(
+        playlist_id: int,
+        payload: PlaylistAddTracks,
+        request: Request,
+        db: Session = Depends(get_db),
+):
+    playlist = playlist_store.get_playlist(db, playlist_id)
+    if playlist is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    to_add = playlist_store.filter_out_existing_tracks(playlist, payload.selectedTracks)
+    if not to_add:
+        return
+
+    access_token = request.session.get("access_token")
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    uris = [track.uri for track in to_add]
+    if not spotify.add_tracks_to_playlist(playlist.spotify_id, uris, headers):
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY)
+
+    playlist_store.add_tracks(db, playlist, to_add)
