@@ -3,9 +3,15 @@ import AppButton from "../components/AppButton";
 
 const ADD_ARTISTS_PAGE_PATH = "/add-artists";
 const BROWSE_PAGE_PATH = "/browse";
+const TARGET_PLAYLIST_KEY = "setlistify:targetPlaylistId";
 
 function Home() {
   const navigate = useNavigate();
+
+  const handleCreateNew = () => {
+    sessionStorage.removeItem(TARGET_PLAYLIST_KEY);
+    navigate(ADD_ARTISTS_PAGE_PATH);
+  };
 
   return (
     <div className="flex flex-col items-center justify-around">
@@ -17,7 +23,7 @@ function Home() {
           text="Create new playlist"
           width={800}
           height={100}
-          onClick={() => navigate(ADD_ARTISTS_PAGE_PATH)}
+          onClick={handleCreateNew}
         />
         <AppButton
           text="Browse playlists"
