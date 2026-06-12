@@ -3,32 +3,18 @@ import { useNavigate } from "react-router-dom";
 import InputField from "../components/InputField";
 import AppButton from "../components/AppButton";
 import { createPlaylist } from "../AppService";
-import type {
-  ArtistRecommendation,
-  RecommendationsResponse,
-} from "../models/recommendations";
-import type { SelectedTrack } from "../models/playlists";
+import type { RecommendationsResponse } from "../models/recommendations";
+import { toSelectedTracks } from "../utils/selectedTracks";
 
 const RECOMMENDATIONS_STORAGE_KEY = "setlistify:recommendations";
 const HOME_PAGE_PATH = "/home";
 
-function getSelectedTracks(): SelectedTrack[] {
+function getSelectedTracks() {
   const stored = sessionStorage.getItem(RECOMMENDATIONS_STORAGE_KEY);
   if (!stored) return [];
 
   const parsed: RecommendationsResponse = JSON.parse(stored);
-  return (parsed.recommendations ?? []).flatMap((rec: ArtistRecommendation) =>
-    Object.entries(rec.tracks)
-      .filter(([, track]) => track.isSelected)
-      .map(([title, track]) => ({
-        title,
-        artistName: rec.artistName,
-        uri: track.uri,
-        isAIRecommended: track.isAIRecommended,
-        popularity: track.popularity,
-        isSelected: track.isSelected,
-      })),
-  );
+  return toSelectedTracks(parsed.recommendations ?? []);
 }
 
 function SetTitle() {
