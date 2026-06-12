@@ -45,3 +45,14 @@ export const deletePlaylist = async (playlistId: number): Promise<void> => {
     withCredentials: true,
   });
 };
+
+export const addSongsToPlaylist = async (
+  playlistId: number,
+  selectedTracks: SelectedTrack[],
+): Promise<void> => {
+  await axios.post(
+    `${BACKEND_URL}/playlists/${playlistId}/tracks`,
+    { selectedTracks },
+    { withCredentials: true },
+  );
+};

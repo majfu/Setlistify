@@ -6,9 +6,13 @@ import type {
 import SongsField from "../components/SongsField";
 import AppButton from "../components/AppButton";
 import { useNavigate } from "react-router-dom";
+import { addSongsToPlaylist } from "../AppService";
+import { toSelectedTracks } from "../utils/selectedTracks";
 
 const RECOMMENDATIONS_STORAGE_KEY = "setlistify:recommendations";
+const TARGET_PLAYLIST_KEY = "setlistify:targetPlaylistId";
 const SET_TITLE_PATH_PATH = "/set-title";
+const HOME_PAGE_PATH = "/home";
 
 function AddSongs() {
   const navigate = useNavigate();
@@ -32,6 +36,27 @@ function AddSongs() {
   }, [recommendations]);
 
   if (recommendations.length === 0) return null;
+
+  const handleConfirm = async () => {
+    const targetPlaylistId = sessionStorage.getItem(TARGET_PLAYLIST_KEY);
+    if (!targetPlaylistId) {
+      navigate(SET_TITLE_PATH_PATH);
+      return;
+    }
+
+    try {
+      await addSongsToPlaylist(
+        Number(targetPlaylistId),
+        toSelectedTracks(recommendations),
+      );
+      alert("Songs successfully added to the playlist!");
+    } catch {
+      alert("Sorry, something went wrong while adding songs");
+    } finally {
+      sessionStorage.removeItem(TARGET_PLAYLIST_KEY);
+      navigate(HOME_PAGE_PATH);
+    }
+  };
 
   const handlePrev = () => {
     setCurrentIndex(
@@ -94,7 +119,7 @@ function AddSongs() {
             text="Confirm song selection"
             width={600}
             height={80}
-            onClick={() => navigate(SET_TITLE_PATH_PATH)}
+            onClick={handleConfirm}
           />
         </div>
       </div>
