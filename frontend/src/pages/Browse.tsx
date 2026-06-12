@@ -7,6 +7,10 @@ import type { Playlist } from "../models/playlists";
 
 const PAGE_SIZE = 5;
 const HOME_PAGE_PATH = "/home";
+const ADD_ARTISTS_PAGE_PATH = "/add-artists";
+const TARGET_PLAYLIST_KEY = "setlistify:targetPlaylistId";
+const ARTISTS_STORAGE_KEY = "setlistify:artistsList";
+const RECOMMENDATIONS_STORAGE_KEY = "setlistify:recommendations";
 
 function Browse() {
   const navigate = useNavigate();
@@ -35,6 +39,13 @@ function Browse() {
     }
   };
 
+  const handleAddSongs = (id: number) => {
+    sessionStorage.setItem(TARGET_PLAYLIST_KEY, String(id));
+    sessionStorage.removeItem(ARTISTS_STORAGE_KEY);
+    sessionStorage.removeItem(RECOMMENDATIONS_STORAGE_KEY);
+    navigate(ADD_ARTISTS_PAGE_PATH);
+  };
+
   const handlePrev = () => setPage((p) => Math.max(1, p - 1));
   const handleNext = () => setPage((p) => Math.min(totalPages, p + 1));
 
@@ -45,7 +56,11 @@ function Browse() {
       </div>
 
       <div className="flex flex-col bg-white p-20 rounded-3xl w-1150px">
-        <PlaylistList playlists={playlists} onDelete={handleDelete} />
+        <PlaylistList
+          playlists={playlists}
+          onAddSongs={handleAddSongs}
+          onDelete={handleDelete}
+        />
 
         <div className="flex justify-between items-center mt-30">
           <AppButton text="<" width={80} height={80} onClick={handlePrev} />

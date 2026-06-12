@@ -3,6 +3,7 @@ import type { Playlist } from "../models/playlists";
 
 interface PlaylistListProps {
   playlists: Playlist[];
+  onAddSongs: (id: number) => void;
   onDelete: (id: number) => void;
 }
 
@@ -14,7 +15,7 @@ function formatDate(isoDate: string): string {
   });
 }
 
-function PlaylistList({ playlists, onDelete }: PlaylistListProps) {
+function PlaylistList({ playlists, onAddSongs, onDelete }: PlaylistListProps) {
   if (playlists.length === 0) {
     return <div className="text-3xl text-center p-10">No playlists yet.</div>;
   }
@@ -33,7 +34,12 @@ function PlaylistList({ playlists, onDelete }: PlaylistListProps) {
             </div>
           </div>
           <div className="flex gap-10">
-            <AppButton text="Add more songs" width={250} height={70} />
+            <AppButton
+              text="Add more songs"
+              width={250}
+              height={70}
+              onClick={() => onAddSongs(playlist.id)}
+            />
             <AppButton
               text="Delete"
               width={150}
