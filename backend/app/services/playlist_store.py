@@ -1,5 +1,6 @@
 from typing import List, Optional, Tuple
 
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.artist import Artist
@@ -20,7 +21,41 @@ def save_playlist(
     db.add(playlist)
     db.flush()
 
-    for selected in tracks:
+    _link_new_tracks(db, playlist, tracks)
+
+    db.commit()
+    db.refresh(playlist)
+    return playlist
+
+
+def add_tracks(
+    db: Session, playlist: Playlist, tracks: List[SelectedTrack]
+) -> List[SelectedTrack]:
+    added = _link_new_tracks(db, playlist, tracks)
+    db.commit()
+    return added
+
+
+def filter_out_existing_tracks(
+    playlist: Playlist, tracks: List[SelectedTrack]
+) -> List[SelectedTrack]:
+    existing_uris = {link.track.spotify_uri for link in playlist.track_links}
+    new_tracks: List[SelectedTrack] = []
+
+    for track in tracks:
+        if track.uri in existing_uris:
+            continue
+        existing_uris.add(track.uri)
+        new_tracks.append(track)
+
+    return new_tracks
+
+
+def _link_new_tracks(
+    db: Session, playlist: Playlist, tracks: List[SelectedTrack]
+) -> List[SelectedTrack]:
+    added = filter_out_existing_tracks(playlist, tracks)
+    for selected in added:
         artist = _get_or_create_artist(db, selected.artistName)
         track = _get_or_create_track(db, selected, artist)
         db.add(
@@ -31,20 +66,20 @@ def save_playlist(
                 is_selected=selected.isSelected,
             )
         )
-
-    db.commit()
-    db.refresh(playlist)
-    return playlist
+    return added
 
 
 def get_playlists_page(
     db: Session, page: int, page_size: int
 ) -> Tuple[List[Playlist], int]:
-    query = db.query(Playlist).order_by(
-        Playlist.created_at.desc(), Playlist.id.desc()
+    total = db.scalar(select(func.count()).select_from(Playlist)) or 0
+    playlists_query = (
+        select(Playlist)
+        .order_by(Playlist.created_at.desc(), Playlist.id.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
     )
-    total = query.count()
-    playlists = query.offset((page - 1) * page_size).limit(page_size).all()
+    playlists = list(db.scalars(playlists_query).all())
     return playlists, total
 
 
