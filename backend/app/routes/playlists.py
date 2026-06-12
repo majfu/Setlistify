@@ -1,7 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, Query, status
+from loguru import logger
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.routes.dependencies import get_auth_headers
+from app.exceptions.exceptions import PlaylistNotFoundError
 from app.schemas.playlists import (
     PlaylistAddTracks,
     PlaylistCreate,
@@ -30,13 +33,14 @@ def list_playlists(
 
 
 @router.delete("/{playlist_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_playlist(playlist_id: int, request: Request, db: Session = Depends(get_db)):
+def delete_playlist(
+    playlist_id: int,
+    db: Session = Depends(get_db),
+    headers: dict = Depends(get_auth_headers),
+):
     playlist = playlist_store.get_playlist(db, playlist_id)
     if playlist is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-
-    access_token = request.session.get("access_token")
-    headers = {"Authorization": f"Bearer {access_token}"}
+        raise PlaylistNotFoundError()
 
     spotify.delete_playlist(playlist.spotify_id, headers)
     playlist_store.delete_playlist(db, playlist)
@@ -44,46 +48,37 @@ def delete_playlist(playlist_id: int, request: Request, db: Session = Depends(ge
 
 @router.post("/", status_code=status.HTTP_200_OK)
 def create_playlist(
-        playlist_data: PlaylistCreate,
-        request: Request,
-        db: Session = Depends(get_db),
+    payload: PlaylistCreate,
+    db: Session = Depends(get_db),
+    headers: dict = Depends(get_auth_headers),
 ):
-    playlist_title = playlist_data.playlistTitle
-    selected_tracks = playlist_data.selectedTracks
+    selected_tracks = payload.selectedTracks
     uris = [track.uri for track in selected_tracks]
 
-    access_token = request.session.get("access_token")
-    headers = {"Authorization": f"Bearer {access_token}"}
-
-    playlist_data = spotify.create_empty_playlist(playlist_title, headers)
-    if playlist_data is None:
-        return
-
-    spotify_id, spotify_uri = playlist_data
+    spotify_id, spotify_uri = spotify.create_empty_playlist(payload.playlistTitle, headers)
     spotify.add_tracks_to_playlist(spotify_id, uris, headers)
-    playlist_store.save_playlist(db, playlist_title, spotify_id, spotify_uri, selected_tracks)
+    playlist_store.save_playlist(
+        db, payload.playlistTitle, spotify_id, spotify_uri, selected_tracks
+    )
+    logger.info(f"Created playlist {payload.playlistTitle!r} ({len(uris)} tracks)")
 
 
 @router.post("/{playlist_id}/tracks", status_code=status.HTTP_200_OK)
 def add_tracks(
-        playlist_id: int,
-        payload: PlaylistAddTracks,
-        request: Request,
-        db: Session = Depends(get_db),
+    playlist_id: int,
+    payload: PlaylistAddTracks,
+    db: Session = Depends(get_db),
+    headers: dict = Depends(get_auth_headers),
 ):
     playlist = playlist_store.get_playlist(db, playlist_id)
     if playlist is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        raise PlaylistNotFoundError()
 
     to_add = playlist_store.filter_out_existing_tracks(playlist, payload.selectedTracks)
     if not to_add:
         return
 
-    access_token = request.session.get("access_token")
-    headers = {"Authorization": f"Bearer {access_token}"}
-
     uris = [track.uri for track in to_add]
-    if not spotify.add_tracks_to_playlist(playlist.spotify_id, uris, headers):
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY)
-
+    spotify.add_tracks_to_playlist(playlist.spotify_id, uris, headers)
     playlist_store.add_tracks(db, playlist, to_add)
+    logger.info(f"Added {len(uris)} tracks to playlist {playlist_id}")

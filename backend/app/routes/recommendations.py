@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Request, status
+from fastapi import APIRouter, Depends, status
+from loguru import logger
 
+from app.routes.dependencies import get_auth_headers
 from app.schemas.recommendations import ArtistsList, RecommendationsResponse
 from app.services import ai, setlist, spotify
 
@@ -7,9 +9,10 @@ router = APIRouter(prefix="/recommendations", tags=["recommendations"])
 
 
 @router.post("/", response_model=RecommendationsResponse, status_code=status.HTTP_200_OK)
-def get_recommendations(artists_list: ArtistsList, request: Request):
-    access_token = request.session.get("access_token")
-    headers = {"Authorization": f"Bearer {access_token}"}
+def get_recommendations(
+    artists_list: ArtistsList,
+    headers: dict = Depends(get_auth_headers),
+):
     artists = artists_list.artistsList
 
     setlists_per_artist = setlist.get_recent_song_names_per_artist(artists)

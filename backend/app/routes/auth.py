@@ -2,8 +2,11 @@ import datetime
 
 from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
+from loguru import logger
 import os
 import httpx
+
+from app.services.retry import retry_external_call
 
 SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize"
 TOKEN_URL = "https://accounts.spotify.com/api/token"
@@ -39,13 +42,11 @@ async def callback(request: Request, code: str):
         "client_secret": os.getenv("SPOTIFY_CLIENT_SECRET"),
     }
 
-    async with httpx.AsyncClient() as client:
-        response = await client.post(TOKEN_URL, data=params)
-
-    if response.status_code != 200:
+    try:
+        tokens = await _post_token(params)
+    except Exception as exc:
+        logger.error(f"Spotify token exchange failed: {exc!r}")
         return RedirectResponse(f"{FRONTEND_LOG_IN_REDIRECT_URL}?error=auth_failed")
-
-    tokens = response.json()
 
     request.session["access_token"] = tokens["access_token"]
     request.session["refresh_token"] = tokens.get("refresh_token")
@@ -53,6 +54,7 @@ async def callback(request: Request, code: str):
     expiry = datetime.datetime.now().timestamp() + tokens["expires_in"]
     request.session["expires_at"] = expiry
 
+    logger.info("Spotify login successful; tokens stored in session")
     return RedirectResponse(FRONTEND_LOGGED_IN_REDIRECT_URL)
 
 
@@ -70,8 +72,10 @@ async def refresh_token(request: Request):
     try:
         new_tokens = await _fetch_new_spotify_tokens(refresh_token)
         _update_session_with_new_tokens(session, new_tokens)
+        logger.info("Refreshed Spotify access token")
         return RedirectResponse(FRONTEND_LOGGED_IN_REDIRECT_URL)
-    except Exception:
+    except Exception as exc:
+        logger.error(f"Spotify token refresh failed: {exc!r}")
         return RedirectResponse("/auth/login")
 
 
@@ -88,6 +92,11 @@ async def _fetch_new_spotify_tokens(refresh_token: str) -> dict:
         'client_id': os.getenv("SPOTIFY_CLIENT_ID"),
         'client_secret': os.getenv("SPOTIFY_CLIENT_SECRET")
     }
+    return await _post_token(params)
+
+
+@retry_external_call
+async def _post_token(params: dict) -> dict:
     async with httpx.AsyncClient() as client:
         response = await client.post(TOKEN_URL, data=params)
         response.raise_for_status()

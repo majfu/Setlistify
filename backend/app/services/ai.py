@@ -1,5 +1,15 @@
 import os
-from typing import Dict, List
+from typing import Dict, List, Tuple, Type
+
+from loguru import logger
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
+
+from app.exceptions.exceptions import RecommendationGenerationError
 
 CHOSEN_MODEL = os.getenv("CHOSEN_MODEL", "CLAUDE").upper()
 CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-opus-4-8")
@@ -19,15 +29,36 @@ FORMAT_INSTRUCTION = (
     "rather than invent one."
 )
 
+_RETRYABLE_AI_ERRORS: Tuple[Type[Exception], ...] = ()
+
 if CHOSEN_MODEL == "CLAUDE":
-    from anthropic import Anthropic
+    from anthropic import (
+        Anthropic,
+        APIConnectionError,
+        APITimeoutError,
+        InternalServerError,
+        RateLimitError,
+    )
 
     _claude_client = Anthropic()
+    _RETRYABLE_AI_ERRORS = (
+        APIConnectionError,
+        APITimeoutError,
+        InternalServerError,
+        RateLimitError,
+    )
 elif CHOSEN_MODEL == "GEMINI":
     import google.generativeai as genai
+    from google.api_core import exceptions as google_exceptions
 
     genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
     _gemini_model = genai.GenerativeModel(GEMINI_MODEL)
+    _RETRYABLE_AI_ERRORS = (
+        google_exceptions.ServiceUnavailable,
+        google_exceptions.TooManyRequests,
+        google_exceptions.DeadlineExceeded,
+        google_exceptions.InternalServerError,
+    )
 else:
     raise ValueError(f"Unsupported CHOSEN_MODEL: {CHOSEN_MODEL}")
 
@@ -35,10 +66,23 @@ else:
 def get_artist_tracks_dict(setlists_per_artist: Dict[str, set[str]]) -> Dict[str, List[str]]:
     artists = list(setlists_per_artist.keys())
     prompt = _build_recommendations_prompt(setlists_per_artist)
-    text = _generate(prompt, num_artists=len(artists))
+
+    try:
+        text = _generate(prompt, num_artists=len(artists))
+    except Exception as exc:
+        logger.error(f"{CHOSEN_MODEL} recommendation generation failed: {exc!r}")
+        raise RecommendationGenerationError() from exc
+
+    logger.info(f"Generated recommendations for {len(artists)} artists")
     return _parse_response(text, expected_artists=artists)
 
 
+@retry(
+    reraise=True,
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=0.5, min=0.5, max=8),
+    retry=retry_if_exception_type(_RETRYABLE_AI_ERRORS),
+)
 def _generate(prompt: str, num_artists: int) -> str:
     max_tokens = min(MAX_TOKENS_CEILING, MAX_TOKENS_BASE + MAX_TOKENS_PER_ARTIST * num_artists)
 

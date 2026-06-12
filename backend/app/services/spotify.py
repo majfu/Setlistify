@@ -3,36 +3,58 @@ from typing import Dict, List, Optional, Set, Tuple
 from urllib.parse import quote
 
 import requests
+from loguru import logger
 
+from app.exceptions.exceptions import SpotifyError
+from app.services.retry import retry_external_call
 from app.schemas.recommendations import ArtistRecommendation, TrackData
 
 SPOTIFY_API_BASE_URL = "https://api.spotify.com/v1/"
 SEARCH_TRACKS_LIMIT_PER_ARTIST = 15
 MAX_TRACKS_PER_REQUEST = 100
+REQUEST_TIMEOUT = 10
 
 
-def create_empty_playlist(playlist_title: str, headers: dict) -> Optional[Tuple[str, str]]:
+@retry_external_call
+def _request(method: str, url: str, **kwargs) -> requests.Response:
+    response = requests.request(method, url, timeout=REQUEST_TIMEOUT, **kwargs)
+    response.raise_for_status()
+    return response
+
+
+def _spotify_request(method: str, url: str, **kwargs) -> requests.Response:
+    try:
+        return _request(method, url, **kwargs)
+    except requests.RequestException as exc:
+        logger.error(f"Spotify {method} {url} failed: {exc!r}")
+        raise SpotifyError() from exc
+
+
+def create_empty_playlist(playlist_title: str, headers: dict) -> Tuple[str, str]:
     url = f"{SPOTIFY_API_BASE_URL}me/playlists"
-    response = requests.post(url, headers=headers, json={"name": playlist_title})
+    response = _spotify_request("POST", url, headers=headers, json={"name": playlist_title})
+
     body = response.json()
-    if "id" not in body:
-        return None
+    if "id" not in body or "uri" not in body:
+        logger.error(f"Spotify create-playlist returned unexpected body: {body}")
+        raise SpotifyError("Spotify did not return a playlist id")
+
+    logger.info(f"Created Spotify playlist {body['id']}")
     return body["id"], body["uri"]
 
 
-def add_tracks_to_playlist(playlist_id: str, uris: List[str], headers: dict) -> bool:
+def add_tracks_to_playlist(playlist_id: str, uris: List[str], headers: dict) -> None:
     url = f"{SPOTIFY_API_BASE_URL}playlists/{playlist_id}/tracks"
     for start in range(0, len(uris), MAX_TRACKS_PER_REQUEST):
         batch = uris[start:start + MAX_TRACKS_PER_REQUEST]
-        response = requests.post(url, headers=headers, json={"uris": batch})
-        if not response.ok:
-            return False
-    return True
+        _spotify_request("POST", url, headers=headers, json={"uris": batch})
+
+    logger.info(f"Added {len(uris)} tracks to Spotify playlist {playlist_id}")
 
 
 def delete_playlist(playlist_id: str, headers: dict) -> None:
     url = f"{SPOTIFY_API_BASE_URL}playlists/{playlist_id}/followers"
-    requests.delete(url, headers=headers)
+    _spotify_request("DELETE", url, headers=headers)
 
 
 def build_ai_recommendations(
@@ -85,7 +107,7 @@ def build_search_recommendations(
 def _search_tracks_by_artist(artist: str, headers: dict, limit: int) -> List[dict]:
     query = quote(f"artist:{artist}")
     url = f"{SPOTIFY_API_BASE_URL}search?q={query}&type=track&limit={limit}"
-    response = requests.get(url, headers=headers)
+    response = _spotify_request("GET", url, headers=headers)
 
     return _extract_track_items(response)
 
@@ -93,7 +115,7 @@ def _search_tracks_by_artist(artist: str, headers: dict, limit: int) -> List[dic
 def _search_track(track: str, artist: str, headers: dict) -> Optional[dict]:
     query = quote(f"track:{track} artist:{artist}")
     url = f"{SPOTIFY_API_BASE_URL}search?q={query}&type=track&limit=1"
-    response = requests.get(url, headers=headers)
+    response = _spotify_request("GET", url, headers=headers)
 
     items = _extract_track_items(response)
     return items[0] if items else None

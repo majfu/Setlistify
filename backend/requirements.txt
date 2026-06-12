@@ -10,4 +10,5 @@ pydantic
 google-generativeai
 anthropic
 requests
-dotenv
+loguru
+tenacity

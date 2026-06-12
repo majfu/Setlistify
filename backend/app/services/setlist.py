@@ -3,6 +3,9 @@ import time
 from typing import Dict, Iterator, List
 
 import requests
+from loguru import logger
+
+from app.services.retry import retry_external_call
 
 SETLIST_API_BASE_URL = "https://api.setlist.fm/rest"
 SEARCH_SETLIST_URL = "/1.0/search/setlists"
@@ -10,6 +13,7 @@ SETLIST_API_KEY = os.getenv("SETLIST_API_KEY")
 
 SETLISTS_TO_FETCH = 2
 SECONDS_BETWEEN_CALLS = 0.5  # API limit 2 calls per second
+REQUEST_TIMEOUT = 10
 
 
 def get_recent_song_names_per_artist(artists: List[str]) -> Dict[str, set[str]]:
@@ -25,10 +29,12 @@ def _get_recent_song_names(artist_name: str) -> set[str]:
         all_setlists = _fetch_setlists(artist_name)
         setlists = [s for s in all_setlists if _has_songs(s)][:SETLISTS_TO_FETCH]
         return set(_iter_song_names(setlists))
-    except Exception:
+    except Exception as exc:
+        logger.warning(f"No setlist context for {artist_name!r}: {exc!r}")
         return set()
 
 
+@retry_external_call
 def _fetch_setlists(artist_name: str) -> List[dict]:
     headers = {
         "x-api-key": SETLIST_API_KEY,
@@ -39,7 +45,9 @@ def _fetch_setlists(artist_name: str) -> List[dict]:
         f"{SETLIST_API_BASE_URL}{SEARCH_SETLIST_URL}",
         headers=headers,
         params=params,
+        timeout=REQUEST_TIMEOUT,
     )
+    response.raise_for_status()
 
     return response.json().get("setlist", [])
 
