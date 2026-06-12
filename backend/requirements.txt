@@ -12,3 +12,4 @@ anthropic
 requests
 loguru
 tenacity
+pytest
