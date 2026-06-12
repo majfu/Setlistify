@@ -20,11 +20,14 @@ def create_empty_playlist(playlist_title: str, headers: dict) -> Optional[Tuple[
     return body["id"], body["uri"]
 
 
-def add_tracks_to_playlist(playlist_id: str, uris: List[str], headers: dict) -> None:
+def add_tracks_to_playlist(playlist_id: str, uris: List[str], headers: dict) -> bool:
     url = f"{SPOTIFY_API_BASE_URL}playlists/{playlist_id}/tracks"
     for start in range(0, len(uris), MAX_TRACKS_PER_REQUEST):
         batch = uris[start:start + MAX_TRACKS_PER_REQUEST]
-        requests.post(url, headers=headers, json={"uris": batch})
+        response = requests.post(url, headers=headers, json={"uris": batch})
+        if not response.ok:
+            return False
+    return True
 
 
 def delete_playlist(playlist_id: str, headers: dict) -> None:
