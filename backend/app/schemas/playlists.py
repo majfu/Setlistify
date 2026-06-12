@@ -18,6 +18,10 @@ class PlaylistCreate(BaseModel):
     selectedTracks: list[SelectedTrack]
 
 
+class PlaylistAddTracks(BaseModel):
+    selectedTracks: list[SelectedTrack]
+
+
 class PlaylistRead(BaseModel):
     id: int
     title: str
